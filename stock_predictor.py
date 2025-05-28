@@ -1,6 +1,7 @@
 import yfinance as yf
 import numpy as np
 import pandas as pd
+import tensorflow as tensorflow
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
