@@ -689,6 +689,23 @@ if st.sidebar.button("Train Model", type="primary"):
             recent_mape = np.mean(np.abs((recent_actual - recent_pred) / recent_actual)) * 100
             confidence = 100 - recent_mape
             
+            # Enhanced Analysis
+            # 1. Calculate support and resistance levels
+            recent_high = float(data['High'].tail(20).max())
+            recent_low = float(data['Low'].tail(20).min())
+            support_level = recent_low * 0.99  # 1% below recent low
+            resistance_level = recent_high * 1.01  # 1% above recent high
+            
+            # 2. Calculate momentum indicators
+            returns = data['Close'].pct_change().dropna()
+            momentum = float(returns.tail(5).mean() * 100)  # 5-day momentum
+            volatility = float(returns.tail(20).std() * 100)  # 20-day volatility
+            
+            # 3. Calculate trend strength
+            sma_20 = float(data['Close'].rolling(window=20).mean().iloc[-1])
+            sma_50 = float(data['Close'].rolling(window=50).mean().iloc[-1])
+            trend_strength = ((sma_20 - sma_50) / sma_50) * 100
+            
             # Create columns for prediction display
             col1, col2, col3 = st.columns(3)
             
@@ -715,18 +732,53 @@ if st.sidebar.button("Train Model", type="primary"):
                 )
             
             # Add detailed prediction analysis
-            st.markdown("### 📊 Prediction Analysis")
+            st.markdown("### 📊 Advanced Analysis")
             
-            # Calculate volatility
-            recent_volatility = float(np.std(data['Close'].pct_change().dropna().tail(20)) * 100)
+            # Create two columns for detailed metrics
+            col1, col2 = st.columns(2)
             
-            # Generate prediction insights
+            with col1:
+                st.markdown("#### 📈 Price Levels")
+                st.metric("Support Level", f"${support_level:.2f}")
+                st.metric("Resistance Level", f"${resistance_level:.2f}")
+                st.metric("Current Price", f"${current_price:.2f}")
+                
+                # Add price level analysis
+                if next_day_price < support_level:
+                    st.warning("⚠️ Predicted price below support level - potential reversal point")
+                elif next_day_price > resistance_level:
+                    st.warning("⚠️ Predicted price above resistance level - potential breakout")
+            
+            with col2:
+                st.markdown("#### 📊 Market Indicators")
+                st.metric("5-Day Momentum", f"{momentum:+.2f}%")
+                st.metric("20-Day Volatility", f"{volatility:.2f}%")
+                st.metric("Trend Strength", f"{trend_strength:+.2f}%")
+            
+            # Generate comprehensive insights
+            st.markdown("### 🔍 Prediction Insights")
+            
             insights = []
-            if abs(price_change_percent) > recent_volatility:
-                insights.append(f"Strong price movement expected ({abs(price_change_percent):.1f}% vs {recent_volatility:.1f}% average volatility)")
-            else:
-                insights.append(f"Moderate price movement expected ({abs(price_change_percent):.1f}% vs {recent_volatility:.1f}% average volatility)")
             
+            # Price movement analysis
+            if abs(price_change_percent) > volatility:
+                insights.append(f"Strong price movement expected ({abs(price_change_percent):.1f}% vs {volatility:.1f}% average volatility)")
+            else:
+                insights.append(f"Moderate price movement expected ({abs(price_change_percent):.1f}% vs {volatility:.1f}% average volatility)")
+            
+            # Trend analysis
+            if trend_strength > 2:
+                insights.append("Strong upward trend in place - supports bullish prediction")
+            elif trend_strength < -2:
+                insights.append("Strong downward trend in place - supports bearish prediction")
+            
+            # Momentum analysis
+            if momentum > 0 and price_change > 0:
+                insights.append("Positive momentum aligns with predicted upward movement")
+            elif momentum < 0 and price_change < 0:
+                insights.append("Negative momentum aligns with predicted downward movement")
+            
+            # Confidence analysis
             if confidence > 80:
                 insights.append("High confidence prediction based on recent model accuracy")
             elif confidence > 60:
@@ -734,14 +786,47 @@ if st.sidebar.button("Train Model", type="primary"):
             else:
                 insights.append("Low confidence prediction - exercise caution")
             
+            # Risk assessment
+            if volatility > 2:
+                insights.append("⚠️ High market volatility - increased risk of prediction deviation")
+            
             # Display insights
             for insight in insights:
                 st.write(f"- {insight}")
+            
+            # Add trading recommendations
+            st.markdown("### 💡 Trading Recommendations")
+            
+            # Calculate risk-reward ratio
+            potential_gain = abs(price_change_percent)
+            potential_loss = volatility
+            risk_reward_ratio = potential_gain / potential_loss if potential_loss > 0 else 0
+            
+            if risk_reward_ratio > 2 and confidence > 70:
+                recommendation = "Strong trading opportunity"
+                recommendation_color = "green"
+            elif risk_reward_ratio > 1.5 and confidence > 60:
+                recommendation = "Moderate trading opportunity"
+                recommendation_color = "orange"
+            else:
+                recommendation = "High risk, consider waiting"
+                recommendation_color = "red"
+            
+            st.markdown(f"""
+            <div style='background-color: {recommendation_color}; padding: 10px; border-radius: 5px; color: white;'>
+            <strong>Recommendation:</strong> {recommendation}
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.write(f"Risk-Reward Ratio: {risk_reward_ratio:.2f}")
+            st.write(f"Potential Gain: {potential_gain:.1f}%")
+            st.write(f"Potential Loss: {potential_loss:.1f}%")
             
             # Add disclaimer
             st.markdown("""
             ⚠️ **Disclaimer**: This 24-hour prediction is based on historical patterns and technical analysis. 
             Market conditions can change rapidly, and this prediction should not be used as the sole basis for trading decisions.
+            Always consider market conditions, news, and other factors before making trading decisions.
             """)
             
         except Exception as e:
