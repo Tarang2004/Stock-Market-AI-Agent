@@ -1,7 +1,7 @@
 tensorflow==2.15.0
-numpy==1.24.3
-pandas==2.1.4
-matplotlib==3.8.2
+numpy==2.2.4
+pandas==2.1.1
+matplotlib==3.10.1
 scikit-learn==1.3.2
-streamlit==1.29.0
-plotly==5.18.0 
+streamlit==1.45.0
+plotly==6.0.0
